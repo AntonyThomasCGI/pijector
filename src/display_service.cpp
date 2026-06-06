@@ -126,7 +126,11 @@ void loop() {
 
         std::cout << "Payload: " << std::string(payload.data(), payload.size()) << std::endl;
 
-        if (header.type == CommandType::PlayGif) {
+        if (header.type == CommandType::Shutdown) {
+            std::cout << "Shutting down..." << std::endl;
+            break;
+
+        } else if (header.type == CommandType::PlayGif) {
             std::filesystem::path gifPath = std::filesystem::path(RESOURCE_PATH) / payload.data();
             int screenWidth = GetScreenWidth();
             int screenHeight = GetScreenHeight();
@@ -167,9 +171,7 @@ void loop() {
                 EndDrawing();
             }
         }
-
     }
-
 }
 
 

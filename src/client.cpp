@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <cstring>
 
+#include <argparse/argparse.hpp>
+
 #include "protocol.hpp"
 
 
@@ -27,6 +29,17 @@ bool write_all(int fd, const void* data, size_t size)
 }
 
 
+bool send_shutdown(int fd)
+{
+    CommandHeader header{
+        CommandType::Shutdown,
+        0
+    };
+
+    return write_all(fd, &header, sizeof(header));
+}
+
+
 bool send_play_gif(int fd, const std::string& path)
 {
     CommandHeader header{
@@ -45,8 +58,23 @@ bool send_play_gif(int fd, const std::string& path)
 
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <gif_file>" << std::endl;
+    argparse::ArgumentParser parser("pijector", "1.0");
+
+    argparse::ArgumentParser gif_command("gif");
+    gif_command.add_description("Play a GIF file on the display service");
+    gif_command.add_argument("path")
+        .help("Path to the GIF file to play");
+
+    argparse::ArgumentParser shutdown_command("shutdown");
+    shutdown_command.add_description("Shutdown the display service");
+
+    parser.add_subparser(gif_command);
+    parser.add_subparser(shutdown_command);
+
+    try {
+        parser.parse_args(argc, argv);
+    } catch (const std::runtime_error& err) {
+        std::cerr << err.what() << std::endl;
         return 1;
     }
 
@@ -66,7 +94,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    send_play_gif(fd, argv[1]);
+    if (parser.is_subcommand_used(gif_command)) {
+        send_play_gif(fd, gif_command.get("path"));
+    } else if (parser.is_subcommand_used(shutdown_command)) { 
+        send_shutdown(fd);
+    }
 
     close(fd);
 }

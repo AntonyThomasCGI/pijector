@@ -21,13 +21,17 @@ target_include_directories(${PROJECT_NAME}
 
 
 add_subdirectory(external/raylib)
+add_subdirectory(external/argparse)
 
 include_directories(
     external/raylib
     external/stb
+    external/argparse
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}_server raylib)
+
+target_link_libraries(${CMAKE_PROJECT_NAME} argparse)
 
 
 
