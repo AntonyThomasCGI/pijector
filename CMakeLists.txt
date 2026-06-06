@@ -4,6 +4,21 @@ project(pijector VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
+add_executable(${PROJECT_NAME}_server src/display_service.cpp)
+
+add_executable(${PROJECT_NAME} src/client.cpp)
+
+
+target_include_directories(${PROJECT_NAME}_server
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 
 add_subdirectory(external/raylib)
 
@@ -12,15 +27,7 @@ include_directories(
     external/stb
 )
 
-add_executable(${PROJECT_NAME}
-    src/main.cpp
-)
-
-target_link_libraries(${CMAKE_PROJECT_NAME} raylib)
-
-#target_include_directories(${CMAKE_PROJECT_NAME} INTERFACE
-#    ${CMAKE_CURRENT_SOURCE_DIR}/external/stb/stb_image.h
-#)
+target_link_libraries(${CMAKE_PROJECT_NAME}_server raylib)
 
 
 
@@ -30,6 +37,6 @@ file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # Inject above resource path as a compile definition for the project
-target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
+target_compile_definitions(${CMAKE_PROJECT_NAME}_server PRIVATE
     RESOURCE_PATH="${CMAKE_CURRENT_BINARY_DIR}/resources/"
 )
