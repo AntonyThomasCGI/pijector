@@ -1,14 +1,13 @@
 
 #pragma once
 
-#include "raylib.h"
-#include "stb_image.h"
-
-
 #include <fstream>
 #include <iostream>
+#include <string>
 #include <vector>
 
+#include "raylib.h"
+#include "stb_image.h"
 
 
 struct GifFrame
@@ -18,12 +17,12 @@ struct GifFrame
 };
 
 
-std::vector<unsigned char> read_file(const char* filename)
+std::vector<unsigned char> read_file(std::string filename)
 {
     std::ifstream file(filename, std::ios::binary);
 
     if (!file)
-        throw std::runtime_error("Failed to open file");
+        throw std::runtime_error("Failed to open file " + std::string(filename));
 
     file.seekg(0, std::ios::end);
     size_t size = file.tellg();
@@ -35,7 +34,7 @@ std::vector<unsigned char> read_file(const char* filename)
     return buffer;
 }
 
-std::vector<GifFrame> load_gif(const char* filename)
+std::vector<GifFrame> load_gif(std::string filename)
 {
     auto fileData = read_file(filename);
 

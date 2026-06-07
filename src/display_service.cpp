@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -69,7 +70,7 @@ int setup_socket() {
 }
 
 
-std::optional<std::pair<CommandHeader, std::vector<char>>> wait_for_command(int serverFd) {
+std::optional<std::pair<CommandHeader, std::string>> wait_for_command(int serverFd) {
 
     int clientFd = accept(serverFd, nullptr, nullptr);
     if (clientFd < 0) {
@@ -85,13 +86,14 @@ std::optional<std::pair<CommandHeader, std::vector<char>>> wait_for_command(int 
         return std::nullopt;
     }
 
-    std::vector<char> payload(header.payloadSize);
+    std::string payload;
+    payload.resize(header.payloadSize);
 
     if (header.payloadSize > 0)
     {
         if (!read_all(clientFd,
                       payload.data(),
-                      payload.size()))
+                      header.payloadSize))
         {
             close(clientFd);
         return std::nullopt;
@@ -102,13 +104,14 @@ std::optional<std::pair<CommandHeader, std::vector<char>>> wait_for_command(int 
 }
 
 
-void play_gif(const std::filesystem::path& gifPath) {
-    std::vector<GifFrame> gifFrames = load_gif(gifPath.string().c_str());
-
-
-    //int gifFrames = 0;
-    //Image gifImage = LoadImageAnim(gifPath.string().c_str(), &gifFrames);
-    //Texture2D gifTexture = LoadTextureFromImage(gifImage);
+void play_gif(const std::filesystem::path& gifPath, unsigned int loops = 1) {
+    std::vector<GifFrame> gifFrames;
+    try {
+        gifFrames = load_gif(gifPath.string().c_str());
+    } catch (std::exception& e) {
+        std::cerr << "Failed to load GIF: " << e.what() << std::endl;
+        return;
+    }
 
     int screenWidth = GetScreenWidth();
     int screenHeight = GetScreenHeight();
@@ -120,6 +123,7 @@ void play_gif(const std::filesystem::path& gifPath) {
     int gifX = screenCenterX - (gifWidth / 2);
     int gifY = screenCenterY - (gifHeight / 2);
 
+    unsigned int loopCount = 0;
     int currentFrame = 0;
     double nextFrameTime = GetTime() + gifFrames[currentFrame].delaySeconds;
     while (!WindowShouldClose()) {
@@ -130,11 +134,11 @@ void play_gif(const std::filesystem::path& gifPath) {
             currentFrame = (currentFrame + 1);
             if (currentFrame >= gifFrames.size())
             {
-                // Stop rendering on gif finish
-                break;
+                if (++loopCount >= loops) {
+                    break;
+                }
+                currentFrame = 0;;
             }
-            std::cout << "Current frame: " << currentFrame << std::endl;
-            std::cout << "Frame delay: " << gifFrames[currentFrame].delaySeconds << " seconds" << std::endl;
             nextFrameTime += gifFrames[currentFrame].delaySeconds;
         }
         BeginDrawing();
@@ -176,15 +180,21 @@ void loop() {
                   << " with payload size: " << header.payloadSize
                   << std::endl;
 
-        std::cout << "Payload: " << std::string(payload.data(), payload.size()) << std::endl;
+        std::cout << "Payload: " << payload << std::endl;
 
         if (header.type == CommandType::Shutdown) {
             std::cout << "Shutting down..." << std::endl;
             break;
 
         } else if (header.type == CommandType::PlayGif) {
-            std::filesystem::path gifPath = std::filesystem::path(RESOURCE_PATH) / payload.data();
-            play_gif(gifPath);
+            std::istringstream iss(payload);
+            std::string gifName;
+            unsigned int loops;
+            iss >> gifName;
+            iss >> loops;
+
+            std::filesystem::path gifPath = std::filesystem::path(RESOURCE_PATH) / gifName;
+            play_gif(gifPath, loops=loops);
         }
     }
 }

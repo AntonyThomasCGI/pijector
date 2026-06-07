@@ -1,9 +1,10 @@
 
+#include <cstring>
 #include <iostream>
+#include <string>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <cstring>
 
 #include <argparse/argparse.hpp>
 
@@ -40,17 +41,19 @@ bool send_shutdown(int fd)
 }
 
 
-bool send_play_gif(int fd, const std::string& path)
+bool send_play_gif(int fd, const std::string& path, int loops)
 {
+    std::string payload = path + " " + std::to_string(loops);
+
     CommandHeader header{
         CommandType::PlayGif,
-        static_cast<uint32_t>(path.size())
+        static_cast<uint32_t>(payload.size())
     };
 
     if (!write_all(fd, &header, sizeof(header)))
         return false;
 
-    if (!write_all(fd, path.data(), path.size()))
+    if (!write_all(fd, payload.data(), payload.size()))
         return false;
 
     return true;
@@ -64,6 +67,9 @@ int main(int argc, char *argv[]) {
     gif_command.add_description("Play a GIF file on the display service");
     gif_command.add_argument("path")
         .help("Path to the GIF file to play");
+    gif_command.add_argument("-l", "--loops", "Number of times to loop the GIF (default: 1)")
+        .default_value(1)
+        .scan<'d', int>();
 
     argparse::ArgumentParser shutdown_command("shutdown");
     shutdown_command.add_description("Shutdown the display service");
@@ -95,7 +101,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (parser.is_subcommand_used(gif_command)) {
-        send_play_gif(fd, gif_command.get("path"));
+        send_play_gif(fd, gif_command.get("path"), gif_command.get<int>("--loops"));
     } else if (parser.is_subcommand_used(shutdown_command)) { 
         send_shutdown(fd);
     }
