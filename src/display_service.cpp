@@ -8,10 +8,11 @@
 #include <unistd.h>
 #include <vector>
 
-#include "protocol.hpp"
-
 #include "raylib.h"
 #include "stb_image.h"
+
+#include "protocol.hpp"
+#include "gif.hpp"
 
 
 #ifndef RESOURCE_PATH
@@ -101,6 +102,55 @@ std::optional<std::pair<CommandHeader, std::vector<char>>> wait_for_command(int 
 }
 
 
+void play_gif(const std::filesystem::path& gifPath) {
+    std::vector<GifFrame> gifFrames = load_gif(gifPath.string().c_str());
+
+
+    //int gifFrames = 0;
+    //Image gifImage = LoadImageAnim(gifPath.string().c_str(), &gifFrames);
+    //Texture2D gifTexture = LoadTextureFromImage(gifImage);
+
+    int screenWidth = GetScreenWidth();
+    int screenHeight = GetScreenHeight();
+    int screenCenterX = screenWidth / 2;
+    int screenCenterY = screenHeight / 2;
+
+    int gifWidth = gifFrames.front().texture.width;
+    int gifHeight = gifFrames.front().texture.height;
+    int gifX = screenCenterX - (gifWidth / 2);
+    int gifY = screenCenterY - (gifHeight / 2);
+
+    int currentFrame = 0;
+    double nextFrameTime = GetTime() + gifFrames[currentFrame].delaySeconds;
+    while (!WindowShouldClose()) {
+        double now = GetTime();
+
+        if (now >= nextFrameTime)
+        {
+            currentFrame = (currentFrame + 1);
+            if (currentFrame >= gifFrames.size())
+            {
+                // Stop rendering on gif finish
+                break;
+            }
+            std::cout << "Current frame: " << currentFrame << std::endl;
+            std::cout << "Frame delay: " << gifFrames[currentFrame].delaySeconds << " seconds" << std::endl;
+            nextFrameTime += gifFrames[currentFrame].delaySeconds;
+        }
+        BeginDrawing();
+        ClearBackground(BLACK);
+
+        DrawTexture(
+            gifFrames[currentFrame].texture,
+            gifX,
+            gifY,
+            WHITE);
+
+        EndDrawing();
+    }
+}
+
+
 void loop() {
     int serverFd = setup_socket();
 
@@ -134,44 +184,7 @@ void loop() {
 
         } else if (header.type == CommandType::PlayGif) {
             std::filesystem::path gifPath = std::filesystem::path(RESOURCE_PATH) / payload.data();
-            int screenWidth = GetScreenWidth();
-            int screenHeight = GetScreenHeight();
-
-            int screenCenterX = screenWidth / 2;
-            int screenCenterY = screenHeight / 2;
-
-            int gifFrames = 0;
-            Image gifImage = LoadImageAnim(gifPath.string().c_str(), &gifFrames);
-            Texture2D gifTexture = LoadTextureFromImage(gifImage);
-
-            int gifX = screenCenterX - (gifImage.width / 2);
-            int gifY = screenCenterY - (gifImage.height / 2);
-
-            int currentFrame = 0;
-            int frameCounter = 0;
-            int frameDelay = 2;
-            while (!WindowShouldClose()) {
-                frameCounter++;
-                if (frameCounter >= frameDelay) {
-                    currentFrame++;
-                    if (currentFrame >= gifFrames) {
-                        //currentFrame = 0;
-                        // Exit on gif finish
-                        break;
-                    }
-                    int nextFrameDataOffset = currentFrame * gifImage.width * gifImage.height * 4; // Assuming RGBA format
-
-                    UpdateTexture(gifTexture, ((unsigned char *)gifImage.data) + nextFrameDataOffset);
-
-                    frameCounter = 0;
-                }
-                BeginDrawing();
-                ClearBackground(BLACK);
-
-                DrawTexture(gifTexture, gifX, gifY, WHITE);
-
-                EndDrawing();
-            }
+            play_gif(gifPath);
         }
     }
 }
@@ -182,6 +195,7 @@ int main(int argc, char** argv) {
         loop();
     } catch (std::exception& e) {
         std::cerr << "ERROR: " << e.what() << std::endl;
+        return EXIT_FAILURE;
     }
 
     return EXIT_SUCCESS;

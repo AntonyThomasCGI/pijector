@@ -4,17 +4,21 @@ project(pijector VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(${PROJECT_NAME}_server src/display_service.cpp)
+add_executable(${PROJECT_NAME}
+    src/client.cpp
+)
 
-add_executable(${PROJECT_NAME} src/client.cpp)
+add_executable(${PROJECT_NAME}_server
+    src/display_service.cpp
+)
 
 
-target_include_directories(${PROJECT_NAME}_server
+target_include_directories(${PROJECT_NAME}
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_include_directories(${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME}_server
     PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -29,9 +33,10 @@ include_directories(
     external/argparse
 )
 
-target_link_libraries(${CMAKE_PROJECT_NAME}_server raylib)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} argparse)
+
+target_link_libraries(${CMAKE_PROJECT_NAME}_server raylib)
 
 
 

@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
                 reinterpret_cast<sockaddr*>(&addr),
                 sizeof(addr)) < 0)
     {
-        std::cout << "ERROR: connect" << std::endl;
+        std::cout << "ERROR: Could not connect to server. Is it running?" << std::endl;
         return 1;
     }
 
