@@ -59,6 +59,16 @@ bool send_play_gif(int fd, const std::string& path, int loops)
     return true;
 }
 
+bool send_auto_play_gif(int fd)
+{
+    CommandHeader header{
+        CommandType::AutoPlayGif,
+        0
+    };
+
+    return write_all(fd, &header, sizeof(header));
+}
+
 
 int main(int argc, char *argv[]) {
     argparse::ArgumentParser parser("pijector", "1.0");
@@ -70,11 +80,14 @@ int main(int argc, char *argv[]) {
     gif_command.add_argument("-l", "--loops", "Number of times to loop the GIF (default: 1)")
         .default_value(1)
         .scan<'d', int>();
+    parser.add_subparser(gif_command);
+
+    argparse::ArgumentParser auto_play_command("auto-play");
+    auto_play_command.add_description("Automatically play GIF files from the resource directory");
+    parser.add_subparser(auto_play_command);
 
     argparse::ArgumentParser shutdown_command("shutdown");
     shutdown_command.add_description("Shutdown the display service");
-
-    parser.add_subparser(gif_command);
     parser.add_subparser(shutdown_command);
 
     try {
@@ -102,6 +115,8 @@ int main(int argc, char *argv[]) {
 
     if (parser.is_subcommand_used(gif_command)) {
         send_play_gif(fd, gif_command.get("path"), gif_command.get<int>("--loops"));
+    } else if (parser.is_subcommand_used(auto_play_command)) {
+        send_auto_play_gif(fd);
     } else if (parser.is_subcommand_used(shutdown_command)) { 
         send_shutdown(fd);
     }

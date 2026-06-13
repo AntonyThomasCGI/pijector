@@ -5,7 +5,8 @@
 
 enum class CommandType : uint32_t {
     PlayGif = 1,
-    Shutdown = 2,
+    AutoPlayGif = 2,
+    Shutdown = 3,
 };
 
 struct CommandHeader {

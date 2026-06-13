@@ -1,11 +1,14 @@
 
+#include <chrono> 
 #include <filesystem>
 #include <iostream>
 #include <optional>
+#include <random>
 #include <sstream>
 #include <stdexcept>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <thread>
 #include <unistd.h>
 #include <vector>
 
@@ -154,6 +157,38 @@ void play_gif(const std::filesystem::path& gifPath, unsigned int loops = 1) {
     }
 }
 
+void auto_play_gif() {
+    // List all GIF files in the resource directory
+    auto targetDir =std::filesystem::path(RESOURCE_PATH);
+    std::vector<std::filesystem::path> gifPaths;
+    if (std::filesystem::exists(targetDir) && std::filesystem::is_directory(targetDir)) {
+        for (const auto& entry : std::filesystem::directory_iterator(targetDir)) {
+            std::cout << entry.path() << "\n";
+            gifPaths.push_back(entry.path());
+        }
+    } 
+
+    // Set up random gif selection
+    std::random_device rd; 
+    std::mt19937 gen(rd()); 
+    std::uniform_int_distribution<size_t> gifDist(0, gifPaths.size() - 1); 
+    std::uniform_int_distribution<int> sleepDist(20, 60);
+
+    while (!WindowShouldClose()) {
+        BeginDrawing();
+        ClearBackground(BLACK);
+        EndDrawing();
+
+        int sleepSeconds = sleepDist(gen);
+        std::this_thread::sleep_for(std::chrono::seconds(sleepSeconds));
+
+        size_t randomIndex = gifDist(gen);
+        std::filesystem::path randomGif = gifPaths[randomIndex];
+
+        play_gif(randomGif);
+    }
+}
+
 
 void loop() {
     int serverFd = setup_socket();
@@ -195,6 +230,10 @@ void loop() {
 
             std::filesystem::path gifPath = std::filesystem::path(RESOURCE_PATH) / gifName;
             play_gif(gifPath, loops=loops);
+        } else if (header.type == CommandType::AutoPlayGif) {
+            auto_play_gif();
+        } else {
+            std::cerr << "Unknown command type: " << static_cast<uint32_t>(header.type) << std::endl;
         }
     }
 }

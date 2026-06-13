@@ -45,6 +45,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME}_server raylib)
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/resources
      DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+
 # Inject above resource path as a compile definition for the project
 target_compile_definitions(${CMAKE_PROJECT_NAME}_server PRIVATE
     RESOURCE_PATH="${CMAKE_CURRENT_BINARY_DIR}/resources/"
